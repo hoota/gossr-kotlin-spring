@@ -12,6 +12,7 @@ import java.net.URLEncoder
 import java.nio.charset.Charset
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
+import kotlin.reflect.full.primaryConstructor
 
 interface Route
 interface GetRoute : Route
@@ -97,6 +98,9 @@ class RoutesHelper(
             if(routes.contains(type)) {
                 throw IllegalStateException("${type.name} route should be handled in only one method")
             }
+
+            val constructorParams = type.kotlin.primaryConstructor?.parameters ?: emptyList()
+
             routes.put(
                 type,
                 HandlerInfo(
@@ -104,10 +108,10 @@ class RoutesHelper(
                     routeClass = type,
                     pathPrefix = getRouteUrlPathPrefix(type),
                     pathProperties = type.kotlin.declaredMemberProperties.filter { p ->
-                        p.annotations.any { it is PathProperty }
+                        p.annotations.plus(constructorParams.firstOrNull { it.name == p.name }?.annotations ?: emptyList()).any { it is PathProperty }
                     },
                     paramProperties = type.kotlin.declaredMemberProperties.filterNot { p ->
-                        p.annotations.any { it is PathProperty }
+                        p.annotations.plus(constructorParams.firstOrNull { it.name == p.name }?.annotations ?: emptyList()).any { it is PathProperty }
                     },
                     bean = bean,
                     method = m,
