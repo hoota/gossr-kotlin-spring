@@ -37,6 +37,7 @@ annotation class PathProperty
 class RoutesHelper(
     val applicationContext: ApplicationContext,
     val handlerMapping: RequestMappingHandlerMapping,
+    val pathPrefix: String = "/"
 ) {
     val log: Logger = LoggerFactory.getLogger(javaClass)
     val routes = HashMap<Class<*>, HandlerInfo>()
@@ -123,11 +124,14 @@ class RoutesHelper(
         }
     }
 
-    private fun getRouteUrlPathPrefix(routeClass: Class<*>): String = routeClass.annotations
-        .firstNotNullOfOrNull { it as? PathPrefix }?.value?.let { "/$it" }
-        ?: routeClass.simpleName.replace(Regex("([A-Z]+)")) { m ->
-            "/${m.value.lowercase()}"
-        }.replace("/route", "")
+    private fun getRouteUrlPathPrefix(routeClass: Class<*>): String = (
+        routeClass.annotations.firstNotNullOfOrNull { it as? PathPrefix }?.value
+            ?: routeClass.simpleName.replace(Regex("([A-Z]+)")) { m ->
+                "$pathPrefix${m.value.lowercase()}"
+            }.removeSuffix("/route")
+        ).let {
+            if(it.startsWith("/")) it else "/$it"
+        }
 
     private fun getRouteUrlPath(handler: HandlerInfo, route: Route): StringBuilder {
         return StringBuilder(handler.pathPrefix).also { path ->
