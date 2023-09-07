@@ -124,14 +124,19 @@ class RoutesHelper(
         }
     }
 
-    private fun getRouteUrlPathPrefix(routeClass: Class<*>): String = (
-        routeClass.annotations.firstNotNullOfOrNull { it as? PathPrefix }?.value
-            ?: routeClass.simpleName.replace(Regex("([A-Z]+)")) { m ->
-                "$pathPrefix${m.value.lowercase()}"
-            }.removeSuffix("/route")
-        ).let {
-            if(it.startsWith("/")) it else "/$it"
+    private fun getRouteUrlPathPrefix(routeClass: Class<*>): String {
+        routeClass.annotations.firstNotNullOfOrNull { it as? PathPrefix }?.value?.let {
+            return it
         }
+
+        return routeClass.simpleName.replace(Regex("([A-Z]+)")) { m ->
+            "/${m.value.lowercase()}"
+        }.removeSuffix("/route").let {
+            val p = it.trimStart('/')
+            val pp = pathPrefix.trim('/')
+            "/$pp/$p"
+        }
+    }
 
     private fun getRouteUrlPath(handler: HandlerInfo, route: Route): StringBuilder {
         return StringBuilder(handler.pathPrefix).also { path ->
