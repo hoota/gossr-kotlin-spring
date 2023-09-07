@@ -50,12 +50,14 @@ class RoutesHelper(
         val bean: Any,
         val method: Method,
         val annotations: Array<Annotation>
-    )
+    ) {
+        val binding: String get() = pathPrefix + pathProperties.joinToString("") { "/{${it.name}}" }
+    }
 
     init {
         self = this
 
-        applicationContext.getBeansWithAnnotation(RouteHandler::class.java).forEach { name, bean ->
+        applicationContext.getBeansWithAnnotation(RouteHandler::class.java).forEach { (name, bean) ->
             bean.javaClass.declaredMethods.forEach { m ->
                 processMethod(bean, m)
             }
@@ -66,11 +68,11 @@ class RoutesHelper(
 
     private fun registerMappings() {
         routes.values.forEach { r ->
-            val route = r.pathPrefix + r.pathProperties.joinToString("") { "/{${it.name}}" }
-            log.info("${r.routeClass.simpleName} is handled on ${r.requestMethods} :: $route")
+            val binding = r.binding
+            log.info("${r.routeClass.simpleName} is handled on ${r.requestMethods} :: $binding")
             handlerMapping.registerMapping(
                 RequestMappingInfo
-                    .paths(route)
+                    .paths(binding)
                     .methods(*r.requestMethods.toTypedArray())
                     .build(),
                 r.bean,
@@ -162,10 +164,13 @@ class RoutesHelper(
         return routes.get(route.javaClass)?.annotations
     }
 
+    fun getInfo(method: Method): HandlerInfo? = routes.values.firstOrNull { it.method == method }
+
     companion object {
         private lateinit var self: RoutesHelper
         fun getRouteUrl(route: GetRoute): String = self.getRouteUrl(route).toString()
         fun getRouteUrlPath(route: Route): String = self.getRouteUrlPath(route).toString()
         fun getAnnotations(route: Route): Array<Annotation>? = self.getAnnotations(route)
+        fun getInfo(method: Method): HandlerInfo? = self.getInfo(method)
     }
 }
