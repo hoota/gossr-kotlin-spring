@@ -134,7 +134,7 @@ class RoutesHelper(
         }.removeSuffix("/route").let {
             val p = it.trimStart('/')
             val pp = pathPrefix.trim('/')
-            "/$pp/$p"
+            if(pp.isEmpty()) "/$p" else "/$pp/$p"
         }
     }
 
