@@ -104,18 +104,22 @@ class RoutesHelper(
 
             val constructorParams = type.kotlin.primaryConstructor?.parameters ?: emptyList()
 
+            val properties = type.kotlin.declaredMemberProperties.sortedBy { p ->
+                var index = constructorParams.indexOfFirst { it.name == p.name }
+                if(index < 0) index = type.declaredFields.indexOfFirst { it.name == p.name }
+                if(index < 0) Int.MAX_VALUE else index
+            }.groupBy { p ->
+                p.annotations.plus(constructorParams.firstOrNull { it.name == p.name }?.annotations ?: emptyList()).any { it is PathProperty }
+            }
+
             routes.put(
                 type,
                 HandlerInfo(
                     requestMethods = requestMethods,
                     routeClass = type,
                     pathPrefix = getRouteUrlPathPrefix(type),
-                    pathProperties = type.kotlin.declaredMemberProperties.filter { p ->
-                        p.annotations.plus(constructorParams.firstOrNull { it.name == p.name }?.annotations ?: emptyList()).any { it is PathProperty }
-                    },
-                    paramProperties = type.kotlin.declaredMemberProperties.filterNot { p ->
-                        p.annotations.plus(constructorParams.firstOrNull { it.name == p.name }?.annotations ?: emptyList()).any { it is PathProperty }
-                    },
+                    pathProperties = properties[true] ?: emptyList(),
+                    paramProperties = properties[false] ?: emptyList(),
                     bean = bean,
                     method = m,
                     annotations = m.annotations
