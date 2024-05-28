@@ -5,16 +5,11 @@ import kiss.gossr.DotCommaMoneyFormat
 import kiss.gossr.GossRenderer
 import kiss.gossr.GossrDateTimeFormatter
 import kiss.gossr.GossrMoneyFormatter
-import org.springframework.security.web.csrf.CsrfToken
 import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletRequestAttributes
 
 @Suppress("FunctionNaming")
 open class GossSpringRenderer : GossRenderer() {
-
-    override fun csrf(): Pair<String, String>? = (request()?.getAttribute("_csrf") as? CsrfToken)?.let {
-        it.parameterName to it.token
-    }
 
     fun href(route: GetRoute) = attr("href", RoutesHelper.getRouteUrl(route))
 
