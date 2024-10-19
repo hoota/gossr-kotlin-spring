@@ -145,7 +145,7 @@ class RoutesHelper(
     private fun getRouteUrlPath(handler: HandlerInfo, route: Route): StringBuilder {
         return StringBuilder(handler.pathPrefix).also { path ->
             handler.pathProperties.forEach { pp ->
-                path.append("/").append(pp.getter.call(route))
+                path.append("/").append(URLEncoder.encode(pp.getter.call(route).toString(), Charset.defaultCharset()))
             }
         }
     }
