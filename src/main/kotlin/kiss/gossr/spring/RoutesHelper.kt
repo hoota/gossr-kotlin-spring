@@ -17,6 +17,7 @@ import kotlin.reflect.full.primaryConstructor
 interface Route
 interface GetRoute : Route
 interface PostRoute : Route
+interface MultipartPostRoute : PostRoute
 
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)

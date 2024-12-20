@@ -29,6 +29,8 @@ open class GossSpringRenderer : GossRenderer() {
         }
     }
 
+    inline fun <R : MultipartPostRoute> FORM(route: R, body: (R) -> Unit) = FORM(route, enctype = "multipart/form-data", body = body)
+
     companion object {
         private const val dateFormatAttributeKey = "FTGossRenderer.dateFormatAttributeKey"
         private const val moneyFormatAttributeKey = "FTGossRenderer.moneyFormatAttributeKey"
