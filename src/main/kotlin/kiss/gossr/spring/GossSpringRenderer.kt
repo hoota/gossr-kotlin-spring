@@ -13,23 +13,25 @@ open class GossSpringRenderer : GossRenderer() {
 
     fun href(route: GetRoute) = attr("href", RoutesHelper.getRouteUrl(route))
 
-    inline fun <R : GetRoute> FORM(route: R, fullUrl: Boolean = false, body: (R) -> Unit) = EL("FORM") {
-        action(if(fullUrl) RoutesHelper.getRouteUrl(route) else RoutesHelper.getRouteUrlPath(route))
-        method("GET")
-        body(route)
-    }
-
-    inline fun <R : PostRoute> FORM(route: R, enctype: String? = null, body: (R) -> Unit) = EL("FORM") {
-        enctype(enctype)
+    inline fun <R : Route> FORM(route: R, body: (R) -> Unit) = EL("FORM") {
         action(RoutesHelper.getRouteUrlPath(route))
-        method("POST")
+        when(route) {
+            is MultipartPostRoute -> {
+                method("POST")
+                enctype("multipart/form-data")
+            }
+            is PostRoute -> {
+                method("POST")
+            }
+            else -> method("GET")
+        }
+
         body(route)
-        csrf()?.let {
+
+        if(route is PostRoute) csrf()?.let {
             HIDDEN(it.first, it.second)
         }
     }
-
-    inline fun <R : MultipartPostRoute> FORM(route: R, body: (R) -> Unit) = FORM(route, enctype = "multipart/form-data", body = body)
 
     companion object {
         private const val dateFormatAttributeKey = "FTGossRenderer.dateFormatAttributeKey"
