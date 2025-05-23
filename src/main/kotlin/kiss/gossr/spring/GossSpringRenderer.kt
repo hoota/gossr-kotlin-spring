@@ -23,12 +23,18 @@ open class GossSpringRenderer : GossRenderer() {
             is PostRoute -> {
                 method("POST")
             }
+            is PutRoute -> {
+                method("PUT")
+            }
+            is DeleteRoute -> {
+                method("DELETE")
+            }
             else -> method("GET")
         }
 
         body(route)
 
-        if(route is PostRoute) csrf()?.let {
+        if(route is ProtectedRoute) csrf()?.let {
             HIDDEN(it.first, it.second)
         }
     }

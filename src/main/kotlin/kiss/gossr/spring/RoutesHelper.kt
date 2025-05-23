@@ -4,20 +4,27 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.aop.support.AopUtils
 import org.springframework.context.ApplicationContext
+import org.springframework.stereotype.Component
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping
 import java.lang.reflect.Method
 import java.net.URLEncoder
 import java.nio.charset.Charset
+import javax.annotation.PostConstruct
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.primaryConstructor
 
 interface Route
+
 interface GetRoute : Route
-interface PostRoute : Route
+/** request requires csrf */
+interface ProtectedRoute : Route
+interface PostRoute : ProtectedRoute
 interface MultipartPostRoute : PostRoute
+interface PutRoute : ProtectedRoute
+interface DeleteRoute : ProtectedRoute
 
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
@@ -35,6 +42,7 @@ annotation class PathPrefix(
 @Retention(AnnotationRetention.RUNTIME)
 annotation class PathProperty
 
+@Component
 class RoutesHelper(
     val applicationContext: ApplicationContext,
     val handlerMapping: RequestMappingHandlerMapping,
@@ -56,7 +64,8 @@ class RoutesHelper(
         val binding: String get() = pathPrefix + pathProperties.joinToString("") { "/{${it.name}}" }
     }
 
-    init {
+    @PostConstruct
+    fun initMappings() {
         self = this
 
         applicationContext.getBeansWithAnnotation(RouteHandler::class.java).forEach { (name, bean) ->
@@ -86,21 +95,29 @@ class RoutesHelper(
     private fun processMethod(bean: Any, m: Method) {
         val m = AopUtils.getMostSpecificMethod(m, bean.javaClass)
         if(!m.isAnnotationPresent(RouteHandler::class.java)) return
-        if(m.parameters.count { Route::class.java.isAssignableFrom(it.type) } != 1) return
 
-        val requestAndType = m.parameters.firstOrNull {
-            GetRoute::class.java.isAssignableFrom(it.type) && PostRoute::class.java.isAssignableFrom(it.type)
-        }?.type?.let { type ->
-            listOf(RequestMethod.GET, RequestMethod.POST) to type
-        } ?: m.parameters.firstOrNull { GetRoute::class.java.isAssignableFrom(it.type) }?.type?.let { type ->
-            listOf(RequestMethod.GET) to type
-        } ?: m.parameters.firstOrNull { PostRoute::class.java.isAssignableFrom(it.type) }?.type?.let { type ->
-            listOf(RequestMethod.POST) to type
+        if(m.parameters.count { Route::class.java.isAssignableFrom(it.type) } != 1) {
+            throw IllegalStateException("${m.declaringClass.simpleName}::${m.name} should have single Route parameter")
         }
 
-        requestAndType?.let { (requestMethods, type) ->
+        val typeAndMethods = m.parameters.firstOrNull {
+            Route::class.java.isAssignableFrom(it.type)
+        }?.type?.let { type ->
+            type to listOfNotNull(
+                if(GetRoute::class.java.isAssignableFrom(type)) RequestMethod.GET else null,
+                if(PostRoute::class.java.isAssignableFrom(type)) RequestMethod.POST else null,
+                if(PutRoute::class.java.isAssignableFrom(type)) RequestMethod.PUT else null,
+                if(DeleteRoute::class.java.isAssignableFrom(type)) RequestMethod.DELETE else null,
+            )
+        }
+
+        typeAndMethods?.let { (type, requestMethods) ->
             if(routes.contains(type)) {
-                throw IllegalStateException("${type.name} route should be handled in only one method")
+                throw IllegalStateException("${type.name} route should be handled by one method only")
+            }
+
+            if(requestMethods.count { it != RequestMethod.GET } > 1) {
+                throw IllegalStateException("${type.name} route should be GET, GET/POST, GET/PUT or GET/DELETE")
             }
 
             val constructorParams = type.kotlin.primaryConstructor?.parameters ?: emptyList()

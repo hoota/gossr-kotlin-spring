@@ -2,10 +2,10 @@ package kiss.gossr.spring
 
 import org.junit.runner.RunWith
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
+import org.springframework.format.FormatterRegistry
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.test.context.ContextConfiguration
@@ -18,27 +18,25 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import org.springframework.web.context.WebApplicationContext
 import org.springframework.web.servlet.View
 import org.springframework.web.servlet.config.annotation.EnableWebMvc
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
+import java.time.LocalDate
 import java.util.*
+import javax.servlet.http.HttpServletRequest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @Configuration
 @EnableWebMvc
 @ComponentScan(basePackages = ["kiss.gossr.spring"])
-open class TestApplicationConfig {
+open class TestApplicationConfig : WebMvcConfigurer {
 
     @Bean
     open fun mockMvc(webApplicationContext: WebApplicationContext): MockMvc =
         MockMvcBuilders.webAppContextSetup(webApplicationContext).build()
 
-    @Bean
-    open fun routesHelper(
-        handlerMapping: RequestMappingHandlerMapping,
-        applicationContext: ApplicationContext
-    ) = RoutesHelper(
-        applicationContext, handlerMapping
-    )
+    override fun addFormatters(registry: FormatterRegistry) {
+        registry.addConverter(LocalDateRequestParamConverter())
+    }
 }
 
 @Component
@@ -53,27 +51,67 @@ class TestRouteHandler {
     ) : GetRoute
 
     @RouteHandler
-    fun simpleRouteHandler(route: SimpleRoute): View {
+    fun getRouteHandler(route: SimpleRoute): View {
         return object : GossSpringRenderer(), GossrSpringView {
             override fun draw() {
                 DIV { + route.a.toString() }
                 DIV { + route.b }
                 DIV { + route.c }
+                SPAN { +"GET" }
             }
         }
     }
 
     data class SimplePostRoute(
         val a: Int,
-        val b: Double
+        val b: Double,
+        val c: LocalDate?
     ) : PostRoute
 
     @RouteHandler
-    fun simplePostRouteHandler(route: SimplePostRoute): View {
+    fun postRouteHandler(route: SimplePostRoute): View {
         return object : GossSpringRenderer(), GossrSpringView {
             override fun draw() {
                 DIV { + route.a.toString() }
                 DIV { + formatMoney2(route.b) }
+                DIV { + formatDate(route.c) }
+                SPAN { +"POST" }
+            }
+        }
+    }
+
+    class SimplePutRoute : PutRoute
+
+    @RouteHandler
+    fun putRouteHandler(route: SimplePutRoute): View {
+        return object : GossSpringRenderer(), GossrSpringView {
+            override fun draw() {
+                SPAN { +"PUT" }
+            }
+        }
+    }
+
+    class SimpleDeleteRoute : DeleteRoute
+
+    @RouteHandler
+    fun delRouteHandler(route: SimpleDeleteRoute): View {
+        return object : GossSpringRenderer(), GossrSpringView {
+            override fun draw() {
+                SPAN { +"DELETE" }
+            }
+        }
+    }
+
+    class SimpleMultiRoute : GetRoute, PostRoute
+
+    @RouteHandler
+    fun multiRouteHandler(
+        request: HttpServletRequest,
+        route: SimpleMultiRoute
+    ): View {
+        return object : GossSpringRenderer(), GossrSpringView {
+            override fun draw() {
+                SPAN { +request.method }
             }
         }
     }
@@ -99,12 +137,15 @@ class Tests {
             .andExpect(MockMvcResultMatchers.status().isOk())
             .andExpect(MockMvcResultMatchers.content().string("<DIV>123</DIV>\n" +
                 "<DIV>Hello</DIV>\n" +
-                "<DIV>${route.c}</DIV>\n"))
+                "<DIV>${route.c}</DIV>\n" +
+                "<SPAN>GET</SPAN>\n")
+            )
     }
 
     @Test
     fun testPost() {
-        val route = TestRouteHandler.SimplePostRoute(a = 123, b = 1234.5678)
+        val today = LocalDate.now()
+        val route = TestRouteHandler.SimplePostRoute(a = 123, b = 1234.5678, c = today)
         val url = RoutesHelper.getRouteUrlPath(route)
 
         assertEquals("/simple/post", url)
@@ -114,10 +155,77 @@ class Tests {
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("a", route.a.toString())
                 .param("b", route.b.toString())
+                .param("c", route.c.toString())
         )
             .andExpect(MockMvcResultMatchers.status().isOk())
             .andExpect(MockMvcResultMatchers.content().string("<DIV>123</DIV>\n" +
-                "<DIV>1234.57</DIV>\n"))
+                "<DIV>1234.57</DIV>\n"+
+                "<DIV>$today</DIV>\n"+
+                "<SPAN>POST</SPAN>\n")
+            )
     }
 
+    @Test
+    fun testPut() {
+        val route = TestRouteHandler.SimplePutRoute()
+        val url = RoutesHelper.getRouteUrlPath(route)
+
+        assertEquals("/simple/put", url)
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.put(url)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+        )
+            .andExpect(MockMvcResultMatchers.status().isOk())
+            .andExpect(MockMvcResultMatchers.content().string("<SPAN>PUT</SPAN>\n"))
+    }
+
+    @Test
+    fun testDel() {
+        val route = TestRouteHandler.SimpleDeleteRoute()
+        val url = RoutesHelper.getRouteUrlPath(route)
+
+        assertEquals("/simple/delete", url)
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.delete(url)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+        )
+            .andExpect(MockMvcResultMatchers.status().isOk())
+            .andExpect(MockMvcResultMatchers.content().string("<SPAN>DELETE</SPAN>\n"))
+    }
+
+    @Test
+    fun testMulti() {
+        val route = TestRouteHandler.SimpleMultiRoute()
+        val url = RoutesHelper.getRouteUrlPath(route)
+
+        assertEquals("/simple/multi", url)
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.get(url)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+        )
+            .andExpect(MockMvcResultMatchers.status().isOk())
+            .andExpect(MockMvcResultMatchers.content().string("<SPAN>GET</SPAN>\n"))
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.post(url)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+        )
+            .andExpect(MockMvcResultMatchers.status().isOk())
+            .andExpect(MockMvcResultMatchers.content().string("<SPAN>POST</SPAN>\n"))
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.put(url)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+        )
+            .andExpect(MockMvcResultMatchers.status().isMethodNotAllowed)
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.delete(url)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+        )
+            .andExpect(MockMvcResultMatchers.status().isMethodNotAllowed)
+    }
 }
