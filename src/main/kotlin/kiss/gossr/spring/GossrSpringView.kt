@@ -14,7 +14,7 @@ interface GossrSpringView : View {
 
         response.also {
             it.contentType = "text/html"
-        }.outputStream.bufferedWriter().use { out ->
+        }.outputStream.writer(Charsets.UTF_8).buffered(1 shl 15).use { out ->
             GossRenderer.use(
                 out = out,
                 dateTimeFormats = GossSpringRenderer.getDateTimeFormats(),

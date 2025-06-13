@@ -12,7 +12,7 @@
     <description>Good Old Server-Side Rendering for Kotlin - Spring Classes</description>
 
     <properties>
-        <gossr.version>0.4.4</gossr.version>
+        <gossr.version>0.4.5</gossr.version>
         <java.version>11</java.version>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
