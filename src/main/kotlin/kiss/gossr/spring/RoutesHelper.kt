@@ -57,8 +57,8 @@ class RoutesHelper(
         val pathPrefix: String,
         val pathProperties: List<KProperty1<*, *>>,
         val paramProperties: List<KProperty1<*, *>>,
-        val bean: Any,
-        val method: Method,
+        val bean: Any?,
+        val method: Method?,
         val annotations: Array<Annotation>
     ) {
         val binding: String get() = pathPrefix + pathProperties.joinToString("") { "/{${it.name}}" }
@@ -100,50 +100,49 @@ class RoutesHelper(
             throw IllegalStateException("${m.declaringClass.simpleName}::${m.name} should have single Route parameter")
         }
 
-        val typeAndMethods = m.parameters.firstOrNull {
+        (m.parameters.firstOrNull {
             Route::class.java.isAssignableFrom(it.type)
-        }?.type?.let { type ->
-            type to listOfNotNull(
-                if(GetRoute::class.java.isAssignableFrom(type)) RequestMethod.GET else null,
-                if(PostRoute::class.java.isAssignableFrom(type)) RequestMethod.POST else null,
-                if(PutRoute::class.java.isAssignableFrom(type)) RequestMethod.PUT else null,
-                if(DeleteRoute::class.java.isAssignableFrom(type)) RequestMethod.DELETE else null,
-            )
+        }?.type as? Class<Route>)?.let { type ->
+            addRoute(bean, m, type)
+        }
+    }
+
+    fun addRoute(bean: Any?, method: Method?, type: Class<Route>) {
+        val requestMethods = listOfNotNull(
+            if(GetRoute::class.java.isAssignableFrom(type)) RequestMethod.GET else null,
+            if(PostRoute::class.java.isAssignableFrom(type)) RequestMethod.POST else null,
+            if(PutRoute::class.java.isAssignableFrom(type)) RequestMethod.PUT else null,
+            if(DeleteRoute::class.java.isAssignableFrom(type)) RequestMethod.DELETE else null,
+        )
+
+        if(routes.contains(type)) {
+            throw IllegalStateException("${type.name} route should be handled by one method only")
         }
 
-        typeAndMethods?.let { (type, requestMethods) ->
-            if(routes.contains(type)) {
-                throw IllegalStateException("${type.name} route should be handled by one method only")
-            }
-
-            if(requestMethods.count { it != RequestMethod.GET } > 1) {
-                throw IllegalStateException("${type.name} route should be GET, GET/POST, GET/PUT or GET/DELETE")
-            }
-
-            val constructorParams = type.kotlin.primaryConstructor?.parameters ?: emptyList()
-
-            val properties = type.kotlin.declaredMemberProperties.sortedBy { p ->
-                var index = constructorParams.indexOfFirst { it.name == p.name }
-                if(index < 0) index = type.declaredFields.indexOfFirst { it.name == p.name }
-                if(index < 0) Int.MAX_VALUE else index
-            }.groupBy { p ->
-                p.annotations.plus(constructorParams.firstOrNull { it.name == p.name }?.annotations ?: emptyList()).any { it is PathProperty }
-            }
-
-            routes.put(
-                type,
-                HandlerInfo(
-                    requestMethods = requestMethods,
-                    routeClass = type,
-                    pathPrefix = getRouteUrlPathPrefix(type),
-                    pathProperties = properties[true] ?: emptyList(),
-                    paramProperties = properties[false] ?: emptyList(),
-                    bean = bean,
-                    method = m,
-                    annotations = m.annotations
-                )
-            )
+        if(requestMethods.count { it != RequestMethod.GET } > 1) {
+            throw IllegalStateException("${type.name} route should be GET, GET/POST, GET/PUT or GET/DELETE")
         }
+
+        val constructorParams = type.kotlin.primaryConstructor?.parameters ?: emptyList()
+
+        val properties = type.kotlin.declaredMemberProperties.sortedBy { p ->
+            var index = constructorParams.indexOfFirst { it.name == p.name }
+            if(index < 0) index = type.declaredFields.indexOfFirst { it.name == p.name }
+            if(index < 0) Int.MAX_VALUE else index
+        }.groupBy { p ->
+            p.annotations.plus(constructorParams.firstOrNull { it.name == p.name }?.annotations ?: emptyList()).any { it is PathProperty }
+        }
+
+        routes[type] = HandlerInfo(
+            requestMethods = requestMethods,
+            routeClass = type,
+            pathPrefix = getRouteUrlPathPrefix(type),
+            pathProperties = properties[true] ?: emptyList(),
+            paramProperties = properties[false] ?: emptyList(),
+            bean = bean,
+            method = method,
+            annotations = method?.annotations ?: emptyArray()
+        )
     }
 
     private fun getRouteUrlPathPrefix(routeClass: Class<*>): String {
