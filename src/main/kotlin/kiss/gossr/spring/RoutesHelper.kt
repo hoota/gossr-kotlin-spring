@@ -66,7 +66,7 @@ class RoutesHelper(
 
     @PostConstruct
     fun initMappings() {
-        self = this
+        instance = this
 
         applicationContext.getBeansWithAnnotation(RouteHandler::class.java).forEach { (name, bean) ->
             bean.javaClass.declaredMethods.forEach { m ->
@@ -107,7 +107,7 @@ class RoutesHelper(
         }
     }
 
-    fun addRoute(bean: Any?, method: Method?, type: Class<Route>) {
+    fun <T : Route> addRoute(bean: Any?, method: Method?, type: Class<T>) {
         val requestMethods = listOfNotNull(
             if(GetRoute::class.java.isAssignableFrom(type)) RequestMethod.GET else null,
             if(PostRoute::class.java.isAssignableFrom(type)) RequestMethod.POST else null,
@@ -197,10 +197,10 @@ class RoutesHelper(
     fun getInfo(method: Method): HandlerInfo? = routes.values.firstOrNull { it.method == method }
 
     companion object {
-        private lateinit var self: RoutesHelper
-        fun getRouteUrl(route: GetRoute): String = self.getRouteUrl(route).toString()
-        fun getRouteUrlPath(route: Route): String = self.getRouteUrlPath(route).toString()
-        fun getAnnotations(route: Route): Array<Annotation>? = self.getAnnotations(route)
-        fun getInfo(method: Method): HandlerInfo? = self.getInfo(method)
+        lateinit var instance: RoutesHelper
+        fun getRouteUrl(route: GetRoute): String = instance.getRouteUrl(route).toString()
+        fun getRouteUrlPath(route: Route): String = instance.getRouteUrlPath(route).toString()
+        fun getAnnotations(route: Route): Array<Annotation>? = instance.getAnnotations(route)
+        fun getInfo(method: Method): HandlerInfo? = instance.getInfo(method)
     }
 }
