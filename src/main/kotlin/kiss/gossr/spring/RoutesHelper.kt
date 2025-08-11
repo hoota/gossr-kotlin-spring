@@ -178,12 +178,24 @@ class RoutesHelper(
             getRouteUrlPath(handler, route).also { path ->
                 var n = 0
                 handler.paramProperties.forEach { pp ->
-                    pp.getter.call(route)?.toString()?.let { v ->
-                        n++
-                        path.append(if(n == 1) '?' else '&')
-                            .append(pp.name)
-                            .append('=')
-                            .append(URLEncoder.encode(v, Charset.defaultCharset()))
+                    pp.getter.call(route)?.let { v ->
+                        if(v is Collection<*>) {
+                            v.forEach { v ->
+                                if(v != null) {
+                                    n++
+                                    path.append(if(n == 1) '?' else '&')
+                                        .append(pp.name)
+                                        .append('=')
+                                        .append(URLEncoder.encode(v.toString(), Charset.defaultCharset()))
+                                }
+                            }
+                        } else {
+                            n++
+                            path.append(if(n == 1) '?' else '&')
+                                .append(pp.name)
+                                .append('=')
+                                .append(URLEncoder.encode(v.toString(), Charset.defaultCharset()))
+                        }
                     }
                 }
             }

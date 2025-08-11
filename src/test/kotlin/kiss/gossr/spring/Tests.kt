@@ -47,7 +47,8 @@ class TestRouteHandler {
         val a: Int,
         val b: String,
         val c: UUID,
-        val d: Double? = null
+        val d: Double? = null,
+        val e: List<Int>
     ) : GetRoute
 
     @RouteHandler
@@ -57,6 +58,7 @@ class TestRouteHandler {
                 DIV { + route.a.toString() }
                 DIV { + route.b }
                 DIV { + route.c }
+                DIV { + route.e.joinToString("-")}
                 SPAN { +"GET" }
             }
         }
@@ -128,16 +130,17 @@ class Tests {
 
     @Test
     fun testGet() {
-        val route = TestRouteHandler.SimpleRoute(a = 123, b = "Hello", c = UUID.randomUUID())
+        val route = TestRouteHandler.SimpleRoute(a = 123, b = "Hello", c = UUID.randomUUID(), e = listOf(1,2,3))
         val url = RoutesHelper.getRouteUrl(route)
 
-        assertEquals("/simple/123?b=Hello&c=${route.c}", url)
+        assertEquals("/simple/123?b=Hello&c=${route.c}&e=1&e=2&e=3", url)
 
         mockMvc.perform(MockMvcRequestBuilders.get(url))
             .andExpect(MockMvcResultMatchers.status().isOk())
             .andExpect(MockMvcResultMatchers.content().string("<DIV>123</DIV>\n" +
                 "<DIV>Hello</DIV>\n" +
                 "<DIV>${route.c}</DIV>\n" +
+                "<DIV>1-2-3</DIV>\n" +
                 "<SPAN>GET</SPAN>\n")
             )
     }
