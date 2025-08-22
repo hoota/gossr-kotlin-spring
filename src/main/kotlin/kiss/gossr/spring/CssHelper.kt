@@ -8,15 +8,14 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping
+import java.io.BufferedWriter
 import java.util.concurrent.TimeUnit
 import javax.annotation.PostConstruct
 import javax.servlet.http.HttpServletResponse
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.javaMethod
 
-open class CssClass {
-    lateinit var className: String
-
+open class CssStyles {
     open fun style(): String? = null
     open fun hover(): String? = null
     open fun active(): String? = null
@@ -48,6 +47,14 @@ open class CssClass {
     fun additionals(): Map<String, String>? = null
 }
 
+open class CssClass : CssStyles() {
+    lateinit var generatedCssClassName: String
+
+    open fun cssClassName(): String = generatedCssClassName
+
+    open fun medias(): Map<String, CssStyles>? = null
+}
+
 @Component
 class CssHelper(
     val applicationContext: ApplicationContext,
@@ -64,7 +71,7 @@ class CssHelper(
             val out = StringBuilder()
 
             classes.values.forEach {
-                outOneCssClass(out, it)
+                outOneCssClass(out, it.cssClassName(), it)
             }
 
             val h = DigestUtils.md5DigestAsHex(out.toString().toByteArray(Charsets.UTF_8))
@@ -82,7 +89,7 @@ class CssHelper(
         var n = 0
 
         classes = applicationContext.getBeansOfType(CssClass::class.java).values.onEach { css ->
-            css.className = "gossr-${n.toString(16)}"
+            css.generatedCssClassName = "gossr-${n.toString(16)}"
             n++
         }.associateBy { it.javaClass.kotlin }
 
@@ -110,43 +117,58 @@ class CssHelper(
             }
 
         }.outputStream.writer(Charsets.UTF_8).buffered(1 shl 15).use { out ->
+            val medias = HashMap<String, ArrayList<Pair<String, CssStyles>>>()
+
             classes.values.forEach {
-                outOneCssClass(out, it)
+                outOneCssClass(out, it.cssClassName(), it)
+                it.medias()?.forEach { (media, style) ->
+                    medias.computeIfAbsent(media) { ArrayList() }.add(it.cssClassName() to style)
+                }
+            }
+
+            medias.forEach { (media, styles) ->
+                appendMedia(out, media, styles)
             }
         }
     }
 
-    private fun outOneCssClass(out: Appendable, css: CssClass) {
-        css.style()?.let { outOneCssRule(out, css.className, "", it) }
-        css.hover()?.let { outOneCssRule(out, css.className, ":hover", it) }
-        css.active()?.let { outOneCssRule(out, css.className, ":active", it) }
-        css.focus()?.let { outOneCssRule(out, css.className, ":focus", it) }
-        css.visited()?.let { outOneCssRule(out, css.className, ":visited", it) }
-        css.firstChild()?.let { outOneCssRule(out, css.className, ":first-child", it) }
-        css.lastChild()?.let { outOneCssRule(out, css.className, ":last-child", it) }
-        css.checked()?.let { outOneCssRule(out, css.className, ":checked", it) }
-        css.disabled()?.let { outOneCssRule(out, css.className, ":disabled", it) }
-        css.enabled()?.let { outOneCssRule(out, css.className, ":enabled", it) }
-        css.required()?.let { outOneCssRule(out, css.className, ":required", it) }
-        css.optional()?.let { outOneCssRule(out, css.className, ":optional", it) }
-        css.empty()?.let { outOneCssRule(out, css.className, ":empty", it) }
-        css.firstOfType()?.let { outOneCssRule(out, css.className, ":first-of-type", it) }
-        css.lastOfType()?.let { outOneCssRule(out, css.className, ":last-of-type", it) }
-        css.onlyChild()?.let { outOneCssRule(out, css.className, ":only-child", it) }
-        css.onlyOfType()?.let { outOneCssRule(out, css.className, ":only-of-type", it) }
-        css.target()?.let { outOneCssRule(out, css.className, ":target", it) }
+    private fun appendMedia(out: BufferedWriter, media: String, styles: java.util.ArrayList<Pair<String, CssStyles>>) {
+        out.append("@media(").append(media).append(") {\n")
+        styles.forEach { outOneCssClass(out, it.first, it.second) }
+        out.append("}\n")
+    }
 
-        css.before()?.let { outOneCssRule(out, css.className, "::before", it) }
-        css.after()?.let { outOneCssRule(out, css.className, "::after", it) }
-        css.firstLine()?.let { outOneCssRule(out, css.className, "::first-line", it) }
-        css.firstLetter()?.let { outOneCssRule(out, css.className, "::first-letter", it) }
-        css.selection()?.let { outOneCssRule(out, css.className, "::selection", it) }
-        css.placeholder()?.let { outOneCssRule(out, css.className, "::placeholder", it) }
-        css.marker()?.let { outOneCssRule(out, css.className, "::marker", it) }
-        css.fileSelectorButton()?.let { outOneCssRule(out, css.className, "::file-selector-button", it) }
+    private fun outOneCssClass(out: Appendable, className: String, styles: CssStyles) {
+        styles.style()?.let { outOneCssRule(out, className, "", it) }
+        styles.hover()?.let { outOneCssRule(out, className, ":hover", it) }
+        styles.active()?.let { outOneCssRule(out, className, ":active", it) }
+        styles.focus()?.let { outOneCssRule(out, className, ":focus", it) }
+        styles.visited()?.let { outOneCssRule(out, className, ":visited", it) }
+        styles.firstChild()?.let { outOneCssRule(out, className, ":first-child", it) }
+        styles.lastChild()?.let { outOneCssRule(out, className, ":last-child", it) }
+        styles.checked()?.let { outOneCssRule(out, className, ":checked", it) }
+        styles.disabled()?.let { outOneCssRule(out, className, ":disabled", it) }
+        styles.enabled()?.let { outOneCssRule(out, className, ":enabled", it) }
+        styles.required()?.let { outOneCssRule(out, className, ":required", it) }
+        styles.optional()?.let { outOneCssRule(out, className, ":optional", it) }
+        styles.empty()?.let { outOneCssRule(out, className, ":empty", it) }
+        styles.firstOfType()?.let { outOneCssRule(out, className, ":first-of-type", it) }
+        styles.lastOfType()?.let { outOneCssRule(out, className, ":last-of-type", it) }
+        styles.onlyChild()?.let { outOneCssRule(out, className, ":only-child", it) }
+        styles.onlyOfType()?.let { outOneCssRule(out, className, ":only-of-type", it) }
+        styles.target()?.let { outOneCssRule(out, className, ":target", it) }
 
-        css.additionals()?.forEach { (pseudo, styles) ->
-            outOneCssRule(out, css.className, pseudo, styles)
+        styles.before()?.let { outOneCssRule(out, className, "::before", it) }
+        styles.after()?.let { outOneCssRule(out, className, "::after", it) }
+        styles.firstLine()?.let { outOneCssRule(out, className, "::first-line", it) }
+        styles.firstLetter()?.let { outOneCssRule(out, className, "::first-letter", it) }
+        styles.selection()?.let { outOneCssRule(out, className, "::selection", it) }
+        styles.placeholder()?.let { outOneCssRule(out, className, "::placeholder", it) }
+        styles.marker()?.let { outOneCssRule(out, className, "::marker", it) }
+        styles.fileSelectorButton()?.let { outOneCssRule(out, className, "::file-selector-button", it) }
+
+        styles.additionals()?.forEach { (pseudo, styles) ->
+            outOneCssRule(out, className, pseudo, styles)
         }
     }
 
@@ -159,7 +181,7 @@ class CssHelper(
     companion object {
 
         fun <T : CssClass> getClassName(css: KClass<T>): String? =
-            instance.classes[css]?.className
+            instance.classes[css]?.cssClassName()
 
         lateinit var instance: CssHelper
     }

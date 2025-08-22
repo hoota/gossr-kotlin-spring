@@ -44,6 +44,11 @@ open class TestApplicationConfig : WebMvcConfigurer {
 class Button : CssClass() {
     override fun style(): String = "color: white;"
     override fun hover(): String = "color: black;"
+    override fun medias(): Map<String, CssStyles> = mapOf(
+        "max-width: 991px" to object : CssStyles() {
+            override fun style(): String = "color: red;"
+        }
+    )
 }
 
 @Component
@@ -156,7 +161,7 @@ class Tests {
 
         mockMvc.perform(MockMvcRequestBuilders.get(CssHelper.instance.getUrl()))
             .andExpect(MockMvcResultMatchers.status().isOk())
-            .andExpect(MockMvcResultMatchers.content().string(".gossr-0 {color: white;}\n.gossr-0:hover {color: black;}\n"))
+            .andExpect(MockMvcResultMatchers.content().string(".gossr-0 {color: white;}\n.gossr-0:hover {color: black;}\n@media(max-width: 991px) {\n.gossr-0 {color: red;}\n}\n"))
     }
 
     @Test
