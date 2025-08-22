@@ -7,6 +7,7 @@ import kiss.gossr.GossrDateTimeFormatter
 import kiss.gossr.GossrMoneyFormatter
 import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletRequestAttributes
+import kotlin.reflect.KClass
 
 @Suppress("FunctionNaming")
 open class GossSpringRenderer : GossRenderer() {
@@ -38,6 +39,25 @@ open class GossSpringRenderer : GossRenderer() {
             HIDDEN(it.first, it.second)
         }
     }
+
+    fun <T : CssClass> classes(css: KClass<T>) = classes(CssHelper.getClassName(css))
+
+    operator fun <T : CssClass> KClass<T>.unaryPlus() {
+        classes(CssHelper.getClassName(this))
+    }
+
+    inline fun <T : CssClass> DIV(css: KClass<T>, body: () -> Unit = {}) = DIV(CssHelper.getClassName(css), body)
+    inline fun <T : CssClass> SPAN(css: KClass<T>, body: () -> Unit = {}) = SPAN(CssHelper.getClassName(css), body)
+    inline fun <T : CssClass> BUTTON(css: KClass<T>, body: () -> Unit = {}) = BUTTON(CssHelper.getClassName(css), body)
+    inline fun <T : CssClass> TABLE(css: KClass<T>, body: () -> Unit = {}) = TABLE(CssHelper.getClassName(css), body)
+    inline fun <T : CssClass> TH(css: KClass<T>, body: () -> Unit = {}) = TH(CssHelper.getClassName(css), body)
+    inline fun <T : CssClass> TR(css: KClass<T>, body: () -> Unit = {}) = TR(CssHelper.getClassName(css), body)
+    inline fun <T : CssClass> TD(css: KClass<T>, body: () -> Unit = {}) = TD(CssHelper.getClassName(css), body)
+    inline fun <T : CssClass> A(css: KClass<T>, body: () -> Unit = {}) = A(CssHelper.getClassName(css), body)
+    inline fun <T : CssClass> UL(css: KClass<T>, body: () -> Unit = {}) = UL(CssHelper.getClassName(css), body)
+    inline fun <T : CssClass> LI(css: KClass<T>, body: () -> Unit = {}) = LI(CssHelper.getClassName(css), body)
+    inline fun <T : CssClass> INPUT(css: KClass<T>, body: () -> Unit = {}) = INPUT(CssHelper.getClassName(css), body)
+    inline fun <T : CssClass> LABEL(css: KClass<T>, body: () -> Unit = {}) = LABEL(CssHelper.getClassName(css), body)
 
     companion object {
         private const val dateFormatAttributeKey = "FTGossRenderer.dateFormatAttributeKey"

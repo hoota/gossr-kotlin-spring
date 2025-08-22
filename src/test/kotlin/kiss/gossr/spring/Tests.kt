@@ -22,6 +22,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 import java.time.LocalDate
 import java.util.*
 import javax.servlet.http.HttpServletRequest
+import kotlin.reflect.KClass
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -40,8 +41,25 @@ open class TestApplicationConfig : WebMvcConfigurer {
 }
 
 @Component
+class Button : CssClass() {
+    override fun style(): String = "color: white;"
+    override fun hover(): String = "color: black;"
+}
+
+@Component
 @RouteHandler
 class TestRouteHandler {
+    class CssTestRoute : GetRoute
+
+    @RouteHandler
+    fun cssTest(route: CssTestRoute): View = object : GossSpringRenderer(), GossrSpringView {
+        override fun draw() {
+            DIV(Button::class) {
+                +"Click Me"
+            }
+        }
+    }
+
     data class SimpleRoute(
         @PathProperty
         val a: Int,
@@ -127,6 +145,19 @@ class Tests {
 
     @Autowired
     lateinit var mockMvc: MockMvc
+
+    @Test
+    fun testCss() {
+        mockMvc.perform(MockMvcRequestBuilders.get(RoutesHelper.getRouteUrl(TestRouteHandler.CssTestRoute())))
+            .andExpect(MockMvcResultMatchers.status().isOk())
+            .andExpect(MockMvcResultMatchers.content().string("<DIV class=\"gossr-0\">Click Me</DIV>\n"))
+
+        assertEquals("/assets/gossr-styles-fc3b3519e7b1397de53ebb52707e34df.css", CssHelper.instance.getUrl())
+
+        mockMvc.perform(MockMvcRequestBuilders.get(CssHelper.instance.getUrl()))
+            .andExpect(MockMvcResultMatchers.status().isOk())
+            .andExpect(MockMvcResultMatchers.content().string(".gossr-0 {color: white;}\n.gossr-0:hover {color: black;}\n"))
+    }
 
     @Test
     fun testGet() {
