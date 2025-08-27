@@ -42,6 +42,7 @@ open class GossSpringRenderer : GossRenderer() {
 
     fun <T : CssClass> classes(css: KClass<T>) = classes(CssClass.getCssClassName(css.java))
     fun <T : CssClass> classes(css: Class<T>) = classes(CssClass.getCssClassName(css))
+    fun classes(css: CssClass) = classes(css.cssClassName)
 
     inline fun <T : CssClass> DIV(css: KClass<T>, body: () -> Unit = {}) = DIV(CssClass.getCssClassName(css.java), body)
     inline fun <T : CssClass> SPAN(css: KClass<T>, body: () -> Unit = {}) = SPAN(CssClass.getCssClassName(css.java), body)
