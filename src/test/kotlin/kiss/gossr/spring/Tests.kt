@@ -41,15 +41,24 @@ open class TestApplicationConfig : WebMvcConfigurer {
 }
 
 @Component
-class Button : CssClass() {
-    override fun style(): String = "color: white;"
-    override fun hover(): String = "color: black;"
-    override fun medias(): Map<String, CssStyles> = mapOf(
-        "max-width: 991px" to object : CssStyles() {
-            override fun style(): String = "color: red;"
-        }
-    )
-}
+object Button : CssClass({
+    style = "color: white;"
+    hover = "color: black;"
+
+    add(">a") {
+        "color: green;"
+    }
+
+    media("max-width: 991px") {
+        style = "color: red;"
+    }
+})
+
+@Component
+class CustomCss : CssClass({
+    cssClassName = "custom"
+    style = "display: none;"
+})
 
 @Component
 @RouteHandler
@@ -59,8 +68,11 @@ class TestRouteHandler {
     @RouteHandler
     fun cssTest(route: CssTestRoute): View = object : GossSpringRenderer(), GossrSpringView {
         override fun draw() {
-            DIV(Button::class) {
+            DIV(Button) {
                 +"Click Me"
+            }
+            DIV(CustomCss::class) {
+                +"OK"
             }
         }
     }
@@ -155,13 +167,13 @@ class Tests {
     fun testCss() {
         mockMvc.perform(MockMvcRequestBuilders.get(RoutesHelper.getRouteUrl(TestRouteHandler.CssTestRoute())))
             .andExpect(MockMvcResultMatchers.status().isOk())
-            .andExpect(MockMvcResultMatchers.content().string("<DIV class=\"gossr-0\">Click Me</DIV>\n"))
+            .andExpect(MockMvcResultMatchers.content().string("<DIV class=\"gossr-0\">Click Me</DIV>\n<DIV class=\"custom\">OK</DIV>\n"))
 
-        assertEquals("/assets/gossr-styles-fc3b3519e7b1397de53ebb52707e34df.css", CssHelper.instance.getUrl())
+        assertEquals("/assets/gossr-styles-964089b0ebd0156b1d2db24a10691b96.css", CssHelper.instance.getUrl())
 
         mockMvc.perform(MockMvcRequestBuilders.get(CssHelper.instance.getUrl()))
             .andExpect(MockMvcResultMatchers.status().isOk())
-            .andExpect(MockMvcResultMatchers.content().string(".gossr-0 {color: white;}\n.gossr-0:hover {color: black;}\n@media(max-width: 991px) {\n.gossr-0 {color: red;}\n}\n"))
+            .andExpect(MockMvcResultMatchers.content().string(".gossr-0 {color: white;}\n.gossr-0:hover {color: black;}\n.gossr-0>a {color: green;}\n.custom {display: none;}\n@media(max-width: 991px) {\n.gossr-0 {color: red;}\n}\n"))
     }
 
     @Test

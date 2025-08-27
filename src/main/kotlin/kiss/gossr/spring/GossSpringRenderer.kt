@@ -40,24 +40,35 @@ open class GossSpringRenderer : GossRenderer() {
         }
     }
 
-    fun <T : CssClass> classes(css: KClass<T>) = classes(CssHelper.getClassName(css))
+    fun <T : CssClass> classes(css: KClass<T>) = classes(CssClass.getCssClassName(css.java))
+    fun <T : CssClass> classes(css: Class<T>) = classes(CssClass.getCssClassName(css))
 
-    operator fun <T : CssClass> KClass<T>.unaryPlus() {
-        classes(CssHelper.getClassName(this))
-    }
+    inline fun <T : CssClass> DIV(css: KClass<T>, body: () -> Unit = {}) = DIV(CssClass.getCssClassName(css.java), body)
+    inline fun <T : CssClass> SPAN(css: KClass<T>, body: () -> Unit = {}) = SPAN(CssClass.getCssClassName(css.java), body)
+    inline fun <T : CssClass> BUTTON(css: KClass<T>, body: () -> Unit = {}) = BUTTON(CssClass.getCssClassName(css.java), body)
+    inline fun <T : CssClass> TABLE(css: KClass<T>, body: () -> Unit = {}) = TABLE(CssClass.getCssClassName(css.java), body)
+    inline fun <T : CssClass> TH(css: KClass<T>, body: () -> Unit = {}) = TH(CssClass.getCssClassName(css.java), body)
+    inline fun <T : CssClass> TR(css: KClass<T>, body: () -> Unit = {}) = TR(CssClass.getCssClassName(css.java), body)
+    inline fun <T : CssClass> TD(css: KClass<T>, body: () -> Unit = {}) = TD(CssClass.getCssClassName(css.java), body)
+    inline fun <T : CssClass> A(css: KClass<T>, body: () -> Unit = {}) = A(CssClass.getCssClassName(css.java), body)
+    inline fun <T : CssClass> UL(css: KClass<T>, body: () -> Unit = {}) = UL(CssClass.getCssClassName(css.java), body)
+    inline fun <T : CssClass> LI(css: KClass<T>, body: () -> Unit = {}) = LI(CssClass.getCssClassName(css.java), body)
+    inline fun <T : CssClass> INPUT(css: KClass<T>, body: () -> Unit = {}) = INPUT(CssClass.getCssClassName(css.java), body)
+    inline fun <T : CssClass> LABEL(css: KClass<T>, body: () -> Unit = {}) = LABEL(CssClass.getCssClassName(css.java), body)
 
-    inline fun <T : CssClass> DIV(css: KClass<T>, body: () -> Unit = {}) = DIV(CssHelper.getClassName(css), body)
-    inline fun <T : CssClass> SPAN(css: KClass<T>, body: () -> Unit = {}) = SPAN(CssHelper.getClassName(css), body)
-    inline fun <T : CssClass> BUTTON(css: KClass<T>, body: () -> Unit = {}) = BUTTON(CssHelper.getClassName(css), body)
-    inline fun <T : CssClass> TABLE(css: KClass<T>, body: () -> Unit = {}) = TABLE(CssHelper.getClassName(css), body)
-    inline fun <T : CssClass> TH(css: KClass<T>, body: () -> Unit = {}) = TH(CssHelper.getClassName(css), body)
-    inline fun <T : CssClass> TR(css: KClass<T>, body: () -> Unit = {}) = TR(CssHelper.getClassName(css), body)
-    inline fun <T : CssClass> TD(css: KClass<T>, body: () -> Unit = {}) = TD(CssHelper.getClassName(css), body)
-    inline fun <T : CssClass> A(css: KClass<T>, body: () -> Unit = {}) = A(CssHelper.getClassName(css), body)
-    inline fun <T : CssClass> UL(css: KClass<T>, body: () -> Unit = {}) = UL(CssHelper.getClassName(css), body)
-    inline fun <T : CssClass> LI(css: KClass<T>, body: () -> Unit = {}) = LI(CssHelper.getClassName(css), body)
-    inline fun <T : CssClass> INPUT(css: KClass<T>, body: () -> Unit = {}) = INPUT(CssHelper.getClassName(css), body)
-    inline fun <T : CssClass> LABEL(css: KClass<T>, body: () -> Unit = {}) = LABEL(CssHelper.getClassName(css), body)
+    inline fun DIV(css: CssClass, body: () -> Unit = {}) = DIV(css.cssClassName, body)
+    inline fun SPAN(css: CssClass, body: () -> Unit = {}) = SPAN(css.cssClassName, body)
+    inline fun BUTTON(css: CssClass, body: () -> Unit = {}) = BUTTON(css.cssClassName, body)
+    inline fun TABLE(css: CssClass, body: () -> Unit = {}) = TABLE(css.cssClassName, body)
+    inline fun TH(css: CssClass, body: () -> Unit = {}) = TH(css.cssClassName, body)
+    inline fun TR(css: CssClass, body: () -> Unit = {}) = TR(css.cssClassName, body)
+    inline fun TD(css: CssClass, body: () -> Unit = {}) = TD(css.cssClassName, body)
+    inline fun A(css: CssClass, body: () -> Unit = {}) = A(css.cssClassName, body)
+    inline fun UL(css: CssClass, body: () -> Unit = {}) = UL(css.cssClassName, body)
+    inline fun LI(css: CssClass, body: () -> Unit = {}) = LI(css.cssClassName, body)
+    inline fun INPUT(css: CssClass, body: () -> Unit = {}) = INPUT(css.cssClassName, body)
+    inline fun LABEL(css: CssClass, body: () -> Unit = {}) = LABEL(css.cssClassName, body)
+
 
     companion object {
         private const val dateFormatAttributeKey = "FTGossRenderer.dateFormatAttributeKey"
