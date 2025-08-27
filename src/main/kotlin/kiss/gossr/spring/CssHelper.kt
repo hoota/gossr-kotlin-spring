@@ -44,7 +44,7 @@ open class CssStyles {
     open fun marker(): String? = null
     open fun fileSelectorButton(): String? = null
 
-    fun additionals(): Map<String, String>? = null
+    open fun additionals(): Map<String, String>? = null
 }
 
 open class CssClass : CssStyles() {
