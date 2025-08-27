@@ -1,5 +1,6 @@
 package kiss.gossr.spring
 
+import kiss.gossr.spring.CssClass.Companion.map
 import org.springframework.context.ApplicationContext
 import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Component
@@ -55,6 +56,10 @@ open class CssStyles(
     }
 
     init {
+        updateStyle()
+    }
+
+    fun updateStyle() {
         setupStype?.invoke(this)
     }
 }
@@ -68,13 +73,17 @@ open class CssClass(
 
     init {
         cssClassName = getCssClassName(this.javaClass)
-        classSetup?.invoke(this)
-        map[this.javaClass] = cssClassName
+        updateClass()
     }
 
     fun media(selector: String, styleSetup: CssStyles.() -> Unit) {
         if(medias == null) medias = HashMap()
         medias?.put(selector, CssStyles(styleSetup))
+    }
+
+    fun updateClass() {
+        classSetup?.invoke(this)
+        map[this.javaClass] = cssClassName
     }
 
     companion object {
@@ -104,9 +113,7 @@ class CssHelper(
         return hash ?: run {
             val out = StringBuilder()
 
-            classes.values.forEach {
-                outOneCssClass(out, it.cssClassName, it)
-            }
+            outAll(out)
 
             val h = DigestUtils.md5DigestAsHex(out.toString().toByteArray(Charsets.UTF_8))
             hash = h
@@ -148,30 +155,42 @@ class CssHelper(
             }
 
         }.outputStream.writer(Charsets.UTF_8).buffered(1 shl 15).use { out ->
-            val medias = HashMap<String, ArrayList<Pair<String, CssStyles>>>()
-
-            classes.values.forEach { cls ->
-                cls.classSetup?.invoke(cls)
-                outOneCssClass(out, cls.cssClassName, cls)
-                cls.medias?.forEach { (media, style) ->
-                    style.setupStype?.invoke(style)
-                    medias.computeIfAbsent(media) { ArrayList() }.add(cls.cssClassName to style)
-                }
-            }
-
-            medias.forEach { (media, styles) ->
-                appendMedia(out, media, styles)
-            }
+            outAll(out)
         }
     }
 
-    private fun appendMedia(out: BufferedWriter, media: String, styles: java.util.ArrayList<Pair<String, CssStyles>>) {
+    private fun outAll(out: java.lang.Appendable) {
+        val medias = HashMap<String, ArrayList<Pair<String, CssStyles>>>()
+
+        classes.values.forEach { cls ->
+            outOneCssClass(out, medias, cls)
+        }
+
+        medias.forEach { (media, styles) ->
+            appendMedia(out, media, styles)
+        }
+    }
+
+    private fun appendMedia(out: java.lang.Appendable, media: String, styles: java.util.ArrayList<Pair<String, CssStyles>>) {
         out.append("@media(").append(media).append(") {\n")
-        styles.forEach { outOneCssClass(out, it.first, it.second) }
+        styles.forEach { outOneCssStyle(out, it.first, it.second) }
         out.append("}\n")
     }
 
-    private fun outOneCssClass(out: Appendable, className: String, styles: CssStyles) {
+    private fun outOneCssClass(
+        out: Appendable,
+        medias: HashMap<String, ArrayList<Pair<String, CssStyles>>>,
+        cls: CssClass
+    ) {
+        cls.updateClass()
+        outOneCssStyle(out, cls.cssClassName, cls)
+        cls.medias?.forEach { (media, style) ->
+            style.updateStyle()
+            medias.computeIfAbsent(media) { ArrayList() }.add(cls.cssClassName to style)
+        }
+    }
+
+    private fun outOneCssStyle(out: Appendable, className: String, styles: CssStyles) {
         styles.style?.let { outOneCssRule(out, className, "", it) }
         styles.hover?.let { outOneCssRule(out, className, ":hover", it) }
         styles.active?.let { outOneCssRule(out, className, ":active", it) }
