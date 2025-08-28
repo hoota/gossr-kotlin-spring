@@ -1,6 +1,5 @@
 package kiss.gossr.spring
 
-import kiss.gossr.spring.CssClass.Companion.map
 import org.springframework.context.ApplicationContext
 import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Component
@@ -9,7 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping
-import java.io.BufferedWriter
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import javax.annotation.PostConstruct
@@ -88,7 +87,7 @@ open class CssClass(
 
     companion object {
         private val id = AtomicInteger()
-        private val map = HashMap<Class<out CssClass>, String>()
+        private val map = ConcurrentHashMap<Class<out CssClass>, String>()
 
         fun <T : CssClass> getCssClassName(javaClass: Class<T>): String {
             return map.computeIfAbsent(javaClass) {
@@ -163,7 +162,7 @@ class CssHelper(
         val medias = HashMap<String, ArrayList<Pair<String, CssStyles>>>()
 
         classes.values.forEach { cls ->
-            outOneCssClass(out, medias, cls)
+            appendOneCssClass(out, medias, cls)
         }
 
         medias.forEach { (media, styles) ->
@@ -173,58 +172,66 @@ class CssHelper(
 
     private fun appendMedia(out: java.lang.Appendable, media: String, styles: java.util.ArrayList<Pair<String, CssStyles>>) {
         out.append("@media(").append(media).append(") {\n")
-        styles.forEach { outOneCssStyle(out, it.first, it.second) }
+        styles.forEach { appendOneCssStyle(out, it.first, it.second) }
         out.append("}\n")
     }
 
-    private fun outOneCssClass(
+    private fun appendOneCssClass(
         out: Appendable,
         medias: HashMap<String, ArrayList<Pair<String, CssStyles>>>,
         cls: CssClass
     ) {
-        cls.updateClass()
-        outOneCssStyle(out, cls.cssClassName, cls)
+        if(devMode) {
+            // updating css-class data to support JVM hot reload in debug mode
+            cls.updateClass()
+        }
+
+        appendOneCssStyle(out, cls.cssClassName, cls)
+
         cls.medias?.forEach { (media, style) ->
-            style.updateStyle()
+            if(devMode) {
+                // updating css-class data to support JVM hot reload in debug mode
+                style.updateStyle()
+            }
             medias.computeIfAbsent(media) { ArrayList() }.add(cls.cssClassName to style)
         }
     }
 
-    private fun outOneCssStyle(out: Appendable, className: String, styles: CssStyles) {
-        styles.style?.let { outOneCssRule(out, className, "", it) }
-        styles.hover?.let { outOneCssRule(out, className, ":hover", it) }
-        styles.active?.let { outOneCssRule(out, className, ":active", it) }
-        styles.focus?.let { outOneCssRule(out, className, ":focus", it) }
-        styles.visited?.let { outOneCssRule(out, className, ":visited", it) }
-        styles.firstChild?.let { outOneCssRule(out, className, ":first-child", it) }
-        styles.lastChild?.let { outOneCssRule(out, className, ":last-child", it) }
-        styles.checked?.let { outOneCssRule(out, className, ":checked", it) }
-        styles.disabled?.let { outOneCssRule(out, className, ":disabled", it) }
-        styles.enabled?.let { outOneCssRule(out, className, ":enabled", it) }
-        styles.required?.let { outOneCssRule(out, className, ":required", it) }
-        styles.optional?.let { outOneCssRule(out, className, ":optional", it) }
-        styles.empty?.let { outOneCssRule(out, className, ":empty", it) }
-        styles.firstOfType?.let { outOneCssRule(out, className, ":first-of-type", it) }
-        styles.lastOfType?.let { outOneCssRule(out, className, ":last-of-type", it) }
-        styles.onlyChild?.let { outOneCssRule(out, className, ":only-child", it) }
-        styles.onlyOfType?.let { outOneCssRule(out, className, ":only-of-type", it) }
-        styles.target?.let { outOneCssRule(out, className, ":target", it) }
+    private fun appendOneCssStyle(out: Appendable, className: String, styles: CssStyles) {
+        styles.style?.let { appendOneCssRule(out, className, "", it) }
+        styles.hover?.let { appendOneCssRule(out, className, ":hover", it) }
+        styles.active?.let { appendOneCssRule(out, className, ":active", it) }
+        styles.focus?.let { appendOneCssRule(out, className, ":focus", it) }
+        styles.visited?.let { appendOneCssRule(out, className, ":visited", it) }
+        styles.firstChild?.let { appendOneCssRule(out, className, ":first-child", it) }
+        styles.lastChild?.let { appendOneCssRule(out, className, ":last-child", it) }
+        styles.checked?.let { appendOneCssRule(out, className, ":checked", it) }
+        styles.disabled?.let { appendOneCssRule(out, className, ":disabled", it) }
+        styles.enabled?.let { appendOneCssRule(out, className, ":enabled", it) }
+        styles.required?.let { appendOneCssRule(out, className, ":required", it) }
+        styles.optional?.let { appendOneCssRule(out, className, ":optional", it) }
+        styles.empty?.let { appendOneCssRule(out, className, ":empty", it) }
+        styles.firstOfType?.let { appendOneCssRule(out, className, ":first-of-type", it) }
+        styles.lastOfType?.let { appendOneCssRule(out, className, ":last-of-type", it) }
+        styles.onlyChild?.let { appendOneCssRule(out, className, ":only-child", it) }
+        styles.onlyOfType?.let { appendOneCssRule(out, className, ":only-of-type", it) }
+        styles.target?.let { appendOneCssRule(out, className, ":target", it) }
 
-        styles.before?.let { outOneCssRule(out, className, "::before", it) }
-        styles.after?.let { outOneCssRule(out, className, "::after", it) }
-        styles.firstLine?.let { outOneCssRule(out, className, "::first-line", it) }
-        styles.firstLetter?.let { outOneCssRule(out, className, "::first-letter", it) }
-        styles.selection?.let { outOneCssRule(out, className, "::selection", it) }
-        styles.placeholder?.let { outOneCssRule(out, className, "::placeholder", it) }
-        styles.marker?.let { outOneCssRule(out, className, "::marker", it) }
-        styles.fileSelectorButton?.let { outOneCssRule(out, className, "::file-selector-button", it) }
+        styles.before?.let { appendOneCssRule(out, className, "::before", it) }
+        styles.after?.let { appendOneCssRule(out, className, "::after", it) }
+        styles.firstLine?.let { appendOneCssRule(out, className, "::first-line", it) }
+        styles.firstLetter?.let { appendOneCssRule(out, className, "::first-letter", it) }
+        styles.selection?.let { appendOneCssRule(out, className, "::selection", it) }
+        styles.placeholder?.let { appendOneCssRule(out, className, "::placeholder", it) }
+        styles.marker?.let { appendOneCssRule(out, className, "::marker", it) }
+        styles.fileSelectorButton?.let { appendOneCssRule(out, className, "::file-selector-button", it) }
 
         styles.additional?.forEach { (pseudo, styles) ->
-            outOneCssRule(out, className, pseudo, styles)
+            appendOneCssRule(out, className, pseudo, styles)
         }
     }
 
-    private fun outOneCssRule(out: Appendable, className: String, addition: String, styles: String) {
+    private fun appendOneCssRule(out: Appendable, className: String, addition: String, styles: String) {
         out.append('.').append(className).append(addition).append(" {")
             .append(styles.replace('\r', ' ').replace('\n', ' '))
             .append("}\n")
