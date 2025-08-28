@@ -1,5 +1,6 @@
 package kiss.gossr.spring
 
+import org.intellij.lang.annotations.Language
 import org.springframework.context.ApplicationContext
 import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Component
@@ -19,39 +20,65 @@ import kotlin.reflect.jvm.javaMethod
 open class CssStyles(
     val setupStype: (CssStyles.() -> Unit)? = null
 ) {
+    @Language("css", prefix = "{", suffix = "}")
     var style: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var hover: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var active: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var focus: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var visited: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var firstChild: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var lastChild: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var checked: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var disabled: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var enabled: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var required: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var optional: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var empty: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var firstOfType: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var lastOfType: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var onlyChild: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var onlyOfType: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var target: String? = null
 
+    @Language("css", prefix = "{", suffix = "}")
     var before: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var after: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var firstLine: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var firstLetter: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var selection: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var placeholder: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var marker: String? = null
+    @Language("css", prefix = "{", suffix = "}")
     var fileSelectorButton: String? = null
 
     var additional: MutableMap<String, String>? = null
 
-    fun add(selector: String, value: ()->String) {
+    fun add(selector: String, @Language("css", prefix = "{", suffix = "}") value: String) {
         if(additional == null) additional = HashMap()
-        additional?.put(selector, value())
+        additional?.put(selector, value)
     }
 
     init {
@@ -75,7 +102,11 @@ open class CssClass(
         updateClass()
     }
 
-    fun media(selector: String, styleSetup: CssStyles.() -> Unit) {
+    fun media(
+        @Language("css", prefix = "media(", suffix = "){}")
+        selector: String,
+        styleSetup: CssStyles.() -> Unit
+    ) {
         if(medias == null) medias = HashMap()
         medias?.put(selector, CssStyles(styleSetup))
     }

@@ -45,9 +45,7 @@ object Button : CssClass({
     style = "color: white;"
     hover = "color: black;"
 
-    add(">a") {
-        "color: green;"
-    }
+    add(">a", "color: green;")
 
     media("max-width: 991px") {
         style = "color: red;"
@@ -169,7 +167,7 @@ class Tests {
             .andExpect(MockMvcResultMatchers.status().isOk())
             .andExpect(MockMvcResultMatchers.content().string("<DIV class=\"gossr-0\">Click Me</DIV>\n<DIV class=\"custom\">OK</DIV>\n"))
 
-        assertEquals("/assets/gossr-styles-964089b0ebd0156b1d2db24a10691b96.css", CssHelper.instance.getUrl())
+        assertEquals("/assets/gossr-styles-1b2b5d865929e4d648a86bcab6d745ba.css", CssHelper.instance.getUrl())
 
         mockMvc.perform(MockMvcRequestBuilders.get(CssHelper.instance.getUrl()))
             .andExpect(MockMvcResultMatchers.status().isOk())
