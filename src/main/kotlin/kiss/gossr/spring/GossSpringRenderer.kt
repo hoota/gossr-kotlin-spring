@@ -8,14 +8,25 @@ import kiss.gossr.GossrMoneyFormatter
 import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletRequestAttributes
 import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
 
 @Suppress("FunctionNaming")
 open class GossSpringRenderer : GossRenderer() {
 
     fun href(route: GetRoute) = attr("href", RoutesHelper.getRouteUrl(route))
 
-    inline fun <R : Route> FORM(route: R, body: (R) -> Unit) = EL("FORM") {
+    inline fun <R : Route> FORM(
+        route: R,
+        checkRouteFieldsExistence: Boolean = true,
+        body: (R) -> Unit,
+    ) = EL("FORM") {
         action(RoutesHelper.getRouteUrlPath(route))
+
+        val saved = context.formFieldNamesCollectionEnabled
+
+        context.formFieldNamesCollectionEnabled = checkRouteFieldsExistence
+        context.formFieldNames.clear()
+
         when(route) {
             is MultipartPostRoute -> {
                 method("POST")
@@ -33,11 +44,42 @@ open class GossSpringRenderer : GossRenderer() {
             else -> method("GET")
         }
 
-        body(route)
-
         if(route is ProtectedRoute) csrf()?.let {
             HIDDEN(it.first, it.second)
         }
+
+        try {
+            context.formFieldNames.clear()
+            body(route)
+        } finally {
+            if(checkRouteFieldsExistence) doCheckFormInputs(route)
+            context.formFieldNamesCollectionEnabled = saved
+            context.formFieldNames.clear()
+        }
+    }
+
+    private fun Set<String>.contains(p: KProperty1<*, *>): Boolean = p.name in this ||
+        "${p.name}[".let { prefix -> this.any { it.startsWith(prefix) } } ||
+        "${p.name}.".let { prefix -> this.any { it.startsWith(prefix) } }
+
+    fun <R : Route> doCheckFormInputs(route: R) {
+        RoutesHelper.instance.routes[route.javaClass]?.let { handler ->
+            if(!handler.requiredFormProperties.all {
+                context.formFieldNames.contains(it)
+            }) {
+                onRoutePropertyIsMissingInForm(
+                    route,
+                    handler.requiredFormProperties.filterNot { context.formFieldNames.contains(it) }
+                )
+            }
+        }
+    }
+
+    open fun <R : Route> onRoutePropertyIsMissingInForm(
+        route: R,
+        missingProperties: List<KProperty1<*, *>>
+    ) {
+        // should be implemented by developer
     }
 
     fun <T : CssClass> classes(css: KClass<T>) = classes(CssClass.getCssClassName(css.java))

@@ -23,6 +23,7 @@ import java.time.LocalDate
 import java.util.*
 import javax.servlet.http.HttpServletRequest
 import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -151,6 +152,75 @@ class TestRouteHandler {
         }
     }
 
+    class CheckFormRouteFieldsRoute : GetRoute
+
+    data class NestedParam(val v: Int = 0)
+
+    data class MissingFormRouteFieldRoute(
+        @PathProperty
+        val pathProperty: Int,
+        val myProperty: Long,
+        val propertyWithDefault: Int = 0,
+        val nullableProperty: String?,
+        @ForceFormFieldPresentCheck
+        val forcedNullablePropertyWithDefault: String? = "",
+
+        var justMap: Map<String, String> = emptyMap(),
+        @ForceFormFieldPresentCheck
+        var forcedMap: Map<String, String> = emptyMap(),
+        @ForceFormFieldPresentCheck
+        var forcedMissingMap: Map<String, String> = emptyMap(),
+
+        var justList: List<String> = emptyList(),
+        @ForceFormFieldPresentCheck
+        var forcedList: List<String> = emptyList(),
+        @ForceFormFieldPresentCheck
+        var forcedMissingList: List<String> = emptyList(),
+
+        var justNested: NestedParam = NestedParam(),
+        @ForceFormFieldPresentCheck
+        var forcedNested: NestedParam = NestedParam(),
+        @ForceFormFieldPresentCheck
+        var forcedMissingNested: NestedParam = NestedParam(),
+
+    ): PostRoute
+
+    @RouteHandler
+    fun checkFormRouteFields(route: CheckFormRouteFieldsRoute): View {
+        return object : GossSpringRenderer(), GossrSpringView {
+            override fun draw() {
+                newLineAfterTagClose(false) {
+                    FORM(MissingFormRouteFieldRoute(
+                        pathProperty = 0,
+                        myProperty = 0,
+                        nullableProperty = null
+                    )) { r ->
+                        namePrefix(r::forcedMap) {
+                            HIDDEN("a", "b")
+                        }
+
+                        HIDDEN(r::forcedList)
+
+                        namePrefix(r::forcedNested) {
+                            HIDDEN(r.forcedNested::v)
+                        }
+                    }
+                }
+            }
+
+            override fun <R : Route> onRoutePropertyIsMissingInForm(
+                route: R,
+                missingProperties: List<KProperty1<*, *>>
+            ) {
+                +"Missing form fields: ${missingProperties.joinToString { it.name }}"
+            }
+        }
+    }
+
+    @RouteHandler
+    fun missingFormRouteField(route: MissingFormRouteFieldRoute) {
+
+    }
 }
 
 @RunWith(SpringJUnit4ClassRunner::class)
@@ -242,6 +312,17 @@ class Tests {
         )
             .andExpect(MockMvcResultMatchers.status().isOk())
             .andExpect(MockMvcResultMatchers.content().string("<SPAN>DELETE</SPAN>\n"))
+    }
+
+    @Test
+    fun missingFormFieldsTest() {
+        val res = mockMvc.perform(
+            MockMvcRequestBuilders.get(
+                RoutesHelper.getRouteUrlPath(TestRouteHandler.CheckFormRouteFieldsRoute())
+            )
+        )
+            .andExpect(MockMvcResultMatchers.status().isOk())
+            .andExpect(MockMvcResultMatchers.content().string("""<FORM action="/missing/form/route/field/0" method="POST"><INPUT type="hidden" name="forcedMap[a]" value="b"/><INPUT type="hidden" name="forcedList" value="[]"/><INPUT type="hidden" name="forcedNested.v" value="0"/>Missing form fields: myProperty, forcedNullablePropertyWithDefault, forcedMissingMap, forcedMissingList, forcedMissingNested</FORM>"""))
     }
 
     @Test

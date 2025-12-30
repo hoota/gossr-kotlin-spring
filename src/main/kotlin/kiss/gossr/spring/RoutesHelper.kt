@@ -42,6 +42,10 @@ annotation class PathPrefix(
 @Retention(AnnotationRetention.RUNTIME)
 annotation class PathProperty
 
+@Target(AnnotationTarget.PROPERTY)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class ForceFormFieldPresentCheck
+
 @Component
 class RoutesHelper(
     val applicationContext: ApplicationContext,
@@ -57,9 +61,10 @@ class RoutesHelper(
         val pathPrefix: String,
         val pathProperties: List<KProperty1<*, *>>,
         val paramProperties: List<KProperty1<*, *>>,
+        val requiredFormProperties: List<KProperty1<*, *>>,
         val bean: Any?,
         val method: Method?,
-        val annotations: Array<Annotation>
+        val annotations: Array<Annotation>,
     ) {
         val binding: String get() = pathPrefix + pathProperties.joinToString("") { "/{${it.name}}" }
     }
@@ -139,6 +144,16 @@ class RoutesHelper(
             pathPrefix = getRouteUrlPathPrefix(type),
             pathProperties = properties[true] ?: emptyList(),
             paramProperties = properties[false] ?: emptyList(),
+            requiredFormProperties = properties[false]
+                ?.filter { p ->
+                    val cp = constructorParams.firstOrNull { it.name == p.name }
+
+                    val force = p.annotations.plus(cp?.annotations ?: emptyList()).any { it is ForceFormFieldPresentCheck }
+                    val nullable = p.returnType.isMarkedNullable
+                    val optional = cp?.isOptional ?: false
+
+                    force || (!nullable && !optional)
+                } ?: emptyList(),
             bean = bean,
             method = method,
             annotations = method?.annotations ?: emptyArray()
