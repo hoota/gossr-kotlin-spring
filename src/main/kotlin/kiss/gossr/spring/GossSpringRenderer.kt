@@ -44,13 +44,14 @@ open class GossSpringRenderer : GossRenderer() {
             else -> method("GET")
         }
 
-        if(route is ProtectedRoute) csrf()?.let {
-            HIDDEN(it.first, it.second)
-        }
-
         try {
             context.formFieldNames.clear()
+
             body(route)
+
+            if(route is ProtectedRoute) csrf()?.let {
+                HIDDEN(it.first, it.second)
+            }
         } finally {
             if(checkRouteFieldsExistence) doCheckFormInputs(route)
             context.formFieldNamesCollectionEnabled = saved
