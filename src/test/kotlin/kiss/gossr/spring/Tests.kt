@@ -1,5 +1,6 @@
 package kiss.gossr.spring
 
+import jakarta.servlet.http.HttpServletRequest
 import org.junit.runner.RunWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
@@ -21,8 +22,6 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 import java.time.LocalDate
 import java.util.*
-import javax.servlet.http.HttpServletRequest
-import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.test.Test
 import kotlin.test.assertEquals

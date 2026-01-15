@@ -1,17 +1,17 @@
 package kiss.gossr.spring
 
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 import kiss.gossr.GossRenderer
 import org.springframework.web.servlet.View
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
 
 interface GossrSpringView : View {
+
     override fun render(
-        params: MutableMap<String, *>?,
+        model: Map<String?, *>?,
         request: HttpServletRequest,
         response: HttpServletResponse
     ) {
-
         response.also {
             it.contentType = "text/html"
         }.outputStream.writer(Charsets.UTF_8).buffered(1 shl 15).use { out ->
