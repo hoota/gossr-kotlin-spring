@@ -83,13 +83,19 @@ class RoutesHelper(
     }
 
     private fun registerMappings() {
+
+        val options = RequestMappingInfo.BuilderConfiguration().apply {
+            val configField = RequestMappingHandlerMapping::class.java
+                .getDeclaredField("config")
+            configField.isAccessible = true
+            val config = configField.get(handlerMapping) as? RequestMappingInfo.BuilderConfiguration
+
+            patternParser = config?.patternParser ?: handlerMapping.patternParser
+        }
+
         routes.values.forEach { r ->
             val binding = r.binding
             log.info("${r.routeClass.simpleName} is handled on ${r.requestMethods} :: $binding")
-
-            val options = RequestMappingInfo.BuilderConfiguration().apply {
-                patternParser = null
-            }
 
             handlerMapping.registerMapping(
                 RequestMappingInfo

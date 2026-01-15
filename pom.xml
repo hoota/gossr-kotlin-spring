@@ -5,7 +5,7 @@
 
     <groupId>kiss.gossr</groupId>
     <artifactId>gossr-kotlin-spring</artifactId>
-    <version>0.5.9-spring-boot-3</version>
+    <version>0.5.10-spring-boot-3</version>
     <packaging>jar</packaging>
 
     <name>gossr-kotlin-spring</name>
