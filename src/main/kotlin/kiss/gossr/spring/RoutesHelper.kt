@@ -86,10 +86,16 @@ class RoutesHelper(
         routes.values.forEach { r ->
             val binding = r.binding
             log.info("${r.routeClass.simpleName} is handled on ${r.requestMethods} :: $binding")
+
+            val options = RequestMappingInfo.BuilderConfiguration().apply {
+                patternParser = null
+            }
+
             handlerMapping.registerMapping(
                 RequestMappingInfo
                     .paths(binding)
                     .methods(*r.requestMethods.toTypedArray())
+                    .options(options)
                     .build(),
                 r.bean,
                 r.method
