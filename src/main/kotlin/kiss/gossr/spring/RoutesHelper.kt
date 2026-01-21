@@ -83,15 +83,11 @@ class RoutesHelper(
     }
 
     private fun registerMappings() {
-
         val options = RequestMappingInfo.BuilderConfiguration().apply {
-            val configField = RequestMappingHandlerMapping::class.java
-                .getDeclaredField("config")
-            configField.isAccessible = true
-            val config = configField.get(handlerMapping) as? RequestMappingInfo.BuilderConfiguration
-
-            patternParser = config?.patternParser ?: handlerMapping.patternParser
+            patternParser = handlerMapping.patternParser
         }
+
+        log.info("using ${options.patternParser?.javaClass?.simpleName ?: "AntPathMatcher"} to bind GOSSR endpoints")
 
         routes.values.forEach { r ->
             val binding = r.binding
