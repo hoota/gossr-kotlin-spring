@@ -1,6 +1,8 @@
 package kiss.gossr.spring
 
 import org.intellij.lang.annotations.Language
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationContext
 import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Component
@@ -135,6 +137,7 @@ class CssHelper(
     val cssUrl: String = "/assets/gossr-styles-{hash}.css",
     val devMode: Boolean = false
 ) {
+    private val log: Logger = LoggerFactory.getLogger(javaClass)
     private lateinit var classes: Map<KClass<out CssClass>, CssClass>
     private var hash: String? = null
 
@@ -161,8 +164,16 @@ class CssHelper(
             .values
             .associateBy { it.javaClass.kotlin }
 
+        log.info("using ${handlerMapping.patternParser?.javaClass?.simpleName ?: "AntPathMatcher"} to bind CSS endpoint: $cssUrl")
+
         handlerMapping.registerMapping(
-            RequestMappingInfo.paths(cssUrl).methods(RequestMethod.GET).build(),
+            RequestMappingInfo
+                .paths(cssUrl)
+                .methods(RequestMethod.GET)
+                .options(RequestMappingInfo.BuilderConfiguration().apply {
+                    patternParser = handlerMapping.patternParser
+                })
+                .build(),
             this,
             this::makeFile.javaMethod
         )
