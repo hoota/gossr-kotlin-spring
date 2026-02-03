@@ -1,9 +1,9 @@
 package kiss.gossr.spring
 
-import jakarta.servlet.http.HttpServletRequest
-import jakarta.servlet.http.HttpServletResponse
 import kiss.gossr.GossRenderer
 import org.springframework.web.servlet.View
+import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.HttpServletResponse
 
 interface GossrSpringView : View {
 

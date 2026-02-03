@@ -1,6 +1,5 @@
 package kiss.gossr.spring
 
-import jakarta.servlet.http.HttpServletResponse
 import org.intellij.lang.annotations.Language
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -16,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import javax.annotation.PostConstruct
+import javax.servlet.http.HttpServletResponse
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.javaMethod
 

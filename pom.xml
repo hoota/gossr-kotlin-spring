@@ -5,7 +5,7 @@
 
     <groupId>kiss.gossr</groupId>
     <artifactId>gossr-kotlin-spring</artifactId>
-    <version>0.5.11-spring-boot-3</version>
+    <version>0.5.12-spring-boot-3</version>
     <packaging>jar</packaging>
 
     <name>gossr-kotlin-spring</name>
@@ -19,9 +19,9 @@
         <kotlin.code.style>official</kotlin.code.style>
         <kotlin.compiler.jvmTarget>11</kotlin.compiler.jvmTarget>
         <kotlin.version>1.7.0</kotlin.version>
-        <spring.version>6.2.10</spring.version>
-        <spring.security.version>6.2.8</spring.security.version>
-        <tomcat.version>10.1.8</tomcat.version>
+        <spring.version>5.3.26</spring.version>
+        <spring.security.version>5.8.3</spring.security.version>
+        <tomcat.version>9.0.90</tomcat.version>
     </properties>
 
     <repositories>
