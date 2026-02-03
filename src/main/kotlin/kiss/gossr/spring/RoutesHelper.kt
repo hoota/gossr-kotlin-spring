@@ -3,15 +3,22 @@ package kiss.gossr.spring
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.aop.support.AopUtils
+import org.springframework.beans.InvalidPropertyException
 import org.springframework.context.ApplicationContext
 import org.springframework.stereotype.Component
 import org.springframework.web.bind.annotation.RequestMethod
+import org.springframework.web.method.HandlerMethod
+import org.springframework.web.servlet.HandlerInterceptor
+import org.springframework.web.servlet.handler.AbstractHandlerMapping
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping
 import java.lang.reflect.Method
 import java.net.URLEncoder
 import java.nio.charset.Charset
 import javax.annotation.PostConstruct
+import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.HttpServletResponse
+import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.primaryConstructor
@@ -46,6 +53,19 @@ annotation class PathProperty
 @Retention(AnnotationRetention.RUNTIME)
 annotation class ForceFormFieldPresentCheck
 
+interface RouteAccessibilityChecker {
+    fun isAccessible(
+        request: HttpServletRequest,
+        handlerInfo: RoutesHelper.HandlerInfo
+    ): Pair<Int, String>?
+}
+
+@Target(AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class AccessibleIf(
+    val value: KClass<out RouteAccessibilityChecker>
+)
+
 @Component
 class RoutesHelper(
     val applicationContext: ApplicationContext,
@@ -54,10 +74,11 @@ class RoutesHelper(
 ) {
     val log: Logger = LoggerFactory.getLogger(javaClass)
     val routes = HashMap<Class<*>, HandlerInfo>()
+    val methods = HashMap<Method?, HandlerInfo>()
 
     class HandlerInfo(
         val requestMethods: List<RequestMethod>,
-        val routeClass: Class<*>,
+        val routeClass: Class<out Route>,
         val pathPrefix: String,
         val pathProperties: List<KProperty1<*, *>>,
         val paramProperties: List<KProperty1<*, *>>,
@@ -65,6 +86,7 @@ class RoutesHelper(
         val bean: Any?,
         val method: Method?,
         val annotations: Array<Annotation>,
+        val condition: RouteAccessibilityChecker?,
     ) {
         val binding: String get() = pathPrefix + pathProperties.joinToString("") { "/{${it.name}}" }
     }
@@ -73,6 +95,8 @@ class RoutesHelper(
     fun initMappings() {
         instance = this
 
+        registerInterceptor()
+
         applicationContext.getBeansWithAnnotation(RouteHandler::class.java).forEach { (name, bean) ->
             bean.javaClass.declaredMethods.forEach { m ->
                 processMethod(bean, m)
@@ -80,6 +104,20 @@ class RoutesHelper(
         }
 
         registerMappings()
+    }
+
+    private fun registerInterceptor() {
+        val handlerMapping = applicationContext.getBean(RequestMappingHandlerMapping::class.java)
+
+        // adaptedInterceptors — protected field
+        val field = AbstractHandlerMapping::class.java.getDeclaredField("adaptedInterceptors")
+
+        field.isAccessible = true
+
+        @Suppress("UNCHECKED_CAST")
+        val interceptors = field.get(handlerMapping) as MutableList<Any>
+
+        interceptors.add(RoutesHandlerInterceptor())
     }
 
     private fun registerMappings() {
@@ -102,6 +140,8 @@ class RoutesHelper(
                 r.bean,
                 r.method
             )
+
+            methods[r.method] = r
         }
     }
 
@@ -164,8 +204,19 @@ class RoutesHelper(
                 } ?: emptyList(),
             bean = bean,
             method = method,
-            annotations = method?.annotations ?: emptyArray()
+            annotations = method?.annotations ?: emptyArray(),
+            condition = getCondition(type)
         )
+    }
+
+    private fun getCondition(routeClass: Class<*>): RouteAccessibilityChecker? {
+        return routeClass.annotations.firstNotNullOfOrNull { it as? AccessibleIf }?.value?.let {
+            applicationContext.getBean(it.java) ?: throw InvalidPropertyException(
+                routeClass,
+                "@EnabledIf",
+                "Spring Bean not found: ${routeClass.name}"
+            )
+        }
     }
 
     private fun getRouteUrlPathPrefix(routeClass: Class<*>): String {
@@ -230,6 +281,23 @@ class RoutesHelper(
     }
 
     fun getInfo(method: Method): HandlerInfo? = routes.values.firstOrNull { it.method == method }
+
+    private inner class RoutesHandlerInterceptor : HandlerInterceptor {
+        override fun preHandle(
+            request: HttpServletRequest,
+            response: HttpServletResponse,
+            handler: Any
+        ): Boolean {
+            methods[(handler as? HandlerMethod)?.method]?.let { info ->
+                info.condition?.isAccessible(request, info)?.let {
+                    response.sendError(it.first, it.second)
+                    return false
+                }
+            }
+
+            return super.preHandle(request, response, handler)
+        }
+    }
 
     companion object {
         lateinit var instance: RoutesHelper

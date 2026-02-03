@@ -22,7 +22,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 import java.time.LocalDate
 import java.util.*
 import javax.servlet.http.HttpServletRequest
-import kotlin.reflect.KClass
+import javax.servlet.http.HttpServletResponse
 import kotlin.reflect.KProperty1
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -58,6 +58,16 @@ class CustomCss : CssClass({
     cssClassName = "custom"
     style = "display: none;"
 })
+
+@Component
+class AccessibilityChecker : RouteAccessibilityChecker {
+    override fun isAccessible(
+        request: HttpServletRequest,
+        handlerInfo: RoutesHelper.HandlerInfo
+    ): Pair<Int, String>? {
+        return HttpServletResponse.SC_NOT_FOUND to "not found"
+    }
+}
 
 @Component
 @RouteHandler
@@ -221,6 +231,14 @@ class TestRouteHandler {
     fun missingFormRouteField(route: MissingFormRouteFieldRoute) {
 
     }
+
+    @AccessibleIf(AccessibilityChecker::class)
+    class AccessibilityCheckRoute : GetRoute
+
+    @RouteHandler
+    fun accessibilityCheck(route: AccessibilityCheckRoute) {
+        TODO("should never run this")
+    }
 }
 
 @RunWith(SpringJUnit4ClassRunner::class)
@@ -230,6 +248,12 @@ class Tests {
 
     @Autowired
     lateinit var mockMvc: MockMvc
+
+    @Test
+    fun accessibilityCheck() {
+        mockMvc.perform(MockMvcRequestBuilders.get(RoutesHelper.getRouteUrl(TestRouteHandler.AccessibilityCheckRoute())))
+            .andExpect(MockMvcResultMatchers.status().isNotFound)
+    }
 
     @Test
     fun testCss() {
