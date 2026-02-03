@@ -71,6 +71,18 @@ class AccessibilityChecker : RouteAccessibilityChecker {
 
 @Component
 @RouteHandler
+@AccessibleIf(AccessibilityChecker::class)
+class NotAccessibleController {
+    class RandomRoute : GetRoute
+
+    @RouteHandler
+    fun random(route: RandomRoute) {
+        TODO("should never run this")
+    }
+}
+
+@Component
+@RouteHandler
 class TestRouteHandler {
     class CssTestRoute : GetRoute
 
@@ -252,6 +264,9 @@ class Tests {
     @Test
     fun accessibilityCheck() {
         mockMvc.perform(MockMvcRequestBuilders.get(RoutesHelper.getRouteUrl(TestRouteHandler.AccessibilityCheckRoute())))
+            .andExpect(MockMvcResultMatchers.status().isNotFound)
+
+        mockMvc.perform(MockMvcRequestBuilders.get(RoutesHelper.getRouteUrl(NotAccessibleController.RandomRoute())))
             .andExpect(MockMvcResultMatchers.status().isNotFound)
     }
 

@@ -86,7 +86,7 @@ class RoutesHelper(
         val bean: Any?,
         val method: Method?,
         val annotations: Array<Annotation>,
-        val condition: RouteAccessibilityChecker?,
+        val conditions: List<RouteAccessibilityChecker>?,
     ) {
         val binding: String get() = pathPrefix + pathProperties.joinToString("") { "/{${it.name}}" }
     }
@@ -160,7 +160,7 @@ class RoutesHelper(
         }
     }
 
-    fun <T : Route> addRoute(bean: Any?, method: Method?, type: Class<T>) {
+    fun <T : Route> addRoute(bean: Any, method: Method, type: Class<T>) {
         val requestMethods = listOfNotNull(
             if(GetRoute::class.java.isAssignableFrom(type)) RequestMethod.GET else null,
             if(PostRoute::class.java.isAssignableFrom(type)) RequestMethod.POST else null,
@@ -204,19 +204,22 @@ class RoutesHelper(
                 } ?: emptyList(),
             bean = bean,
             method = method,
-            annotations = method?.annotations ?: emptyArray(),
-            condition = getCondition(type)
+            annotations = method.annotations ?: emptyArray(),
+            conditions = getConditions(bean, type)
         )
     }
 
-    private fun getCondition(routeClass: Class<*>): RouteAccessibilityChecker? {
-        return routeClass.annotations.firstNotNullOfOrNull { it as? AccessibleIf }?.value?.let {
-            applicationContext.getBean(it.java) ?: throw InvalidPropertyException(
+    private fun getConditions(bean: Any, routeClass: Class<*>): List<RouteAccessibilityChecker>? {
+        return listOfNotNull(
+            AopUtils.getTargetClass(bean).getAnnotation(AccessibleIf::class.java),
+            routeClass.annotations.firstNotNullOfOrNull { it as? AccessibleIf }
+        ).map { a ->
+            applicationContext.getBean(a.value.java) ?: throw InvalidPropertyException(
                 routeClass,
                 "@EnabledIf",
                 "Spring Bean not found: ${routeClass.name}"
             )
-        }
+        }.ifEmpty { null }
     }
 
     private fun getRouteUrlPathPrefix(routeClass: Class<*>): String {
@@ -289,7 +292,7 @@ class RoutesHelper(
             handler: Any
         ): Boolean {
             methods[(handler as? HandlerMethod)?.method]?.let { info ->
-                info.condition?.isAccessible(request, info)?.let {
+                info.conditions?.firstNotNullOfOrNull { it.isAccessible(request, info) }?.let {
                     response.sendError(it.first, it.second)
                     return false
                 }
