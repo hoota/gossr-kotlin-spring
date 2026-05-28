@@ -339,7 +339,7 @@ open class GossSpringRenderer : GossRenderer() {
         }
 
         fun getMoneyFormats(): GossrMoneyFormatter = (request()?.let { r ->
-            r.getAttribute(moneyFormatAttributeKey) ?: r.session?.getAttribute(moneyFormatAttributeKey)
+            r.getAttribute(moneyFormatAttributeKey) ?: r.getSession(false)?.getAttribute(moneyFormatAttributeKey)
         } ?: DotCommaMoneyFormat) as GossrMoneyFormatter
 
         fun setDateTimeFormats(f: GossrDateTimeFormatter?) {
@@ -349,7 +349,7 @@ open class GossSpringRenderer : GossRenderer() {
         }
 
         fun getDateTimeFormats(): GossrDateTimeFormatter = (request()?.let { r ->
-            r.getAttribute(dateFormatAttributeKey) ?: r.session?.getAttribute(dateFormatAttributeKey)
+            r.getAttribute(dateFormatAttributeKey) ?: r.getSession(false)?.getAttribute(dateFormatAttributeKey)
         } ?: DateTimeFormatEurope) as GossrDateTimeFormatter
 
         fun isAuthenticated(): Boolean =
