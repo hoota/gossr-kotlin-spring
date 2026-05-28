@@ -60,6 +60,14 @@ class CustomCss : CssClass({
 })
 
 @Component
+class DivStyles : CssTag("div", {
+    style = "color: black;"
+    media("max-width: 991px") {
+        style = "color: green;"
+    }
+})
+
+@Component
 class AccessibilityChecker : RouteAccessibilityChecker {
     override fun isAccessible(
         request: HttpServletRequest,
@@ -276,11 +284,11 @@ class Tests {
             .andExpect(MockMvcResultMatchers.status().isOk())
             .andExpect(MockMvcResultMatchers.content().string("<DIV class=\"gossr-0\">Click Me</DIV>\n<DIV class=\"custom\">OK</DIV>\n"))
 
-        assertEquals("/assets/gossr-styles-1b2b5d865929e4d648a86bcab6d745ba.css", CssHelper.instance.getUrl())
+        assertEquals("/assets/gossr-styles-057c7f9d741bb5e67c189d3d7026a21e.css", CssHelper.instance.getUrl())
 
         mockMvc.perform(MockMvcRequestBuilders.get(CssHelper.instance.getUrl()))
             .andExpect(MockMvcResultMatchers.status().isOk())
-            .andExpect(MockMvcResultMatchers.content().string(".gossr-0 {color: white;}\n.gossr-0:hover {color: black;}\n.gossr-0>a {color: green;}\n.custom {display: none;}\n@media(max-width: 991px) {\n.gossr-0 {color: red;}\n}\n"))
+            .andExpect(MockMvcResultMatchers.content().string(".gossr-0 {color: white;}\n.gossr-0:hover {color: black;}\n.gossr-0>a {color: green;}\n.custom {display: none;}\ndiv {color: black;}\n@media(max-width: 991px) {\n.gossr-0 {color: red;}\ndiv {color: green;}\n}\n"))
     }
 
     @Test
