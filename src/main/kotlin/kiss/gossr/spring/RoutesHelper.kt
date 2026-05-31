@@ -304,9 +304,13 @@ class RoutesHelper(
 
     companion object {
         lateinit var instance: RoutesHelper
-        fun getRouteUrl(route: GetRoute): String = instance.getRouteUrl(route).toString()
-        fun getRouteUrlPath(route: Route): String = instance.getRouteUrlPath(route).toString()
-        fun getAnnotations(route: Route): Array<Annotation>? = instance.getAnnotations(route)
-        fun getInfo(method: Method): HandlerInfo? = instance.getInfo(method)
+        fun buildRouteUri(route: GetRoute): String = instance.getRouteUrl(route).toString()
+        fun buildRouteUriPath(route: Route): String = instance.getRouteUrlPath(route).toString()
+        fun getEndpointMethodAnnotations(route: Route): Array<Annotation>? = instance.getAnnotations(route)
+        fun getEndpointMethodInfo(method: Method): HandlerInfo? = instance.getInfo(method)
     }
 }
+
+fun GetRoute.buildUri(): String = RoutesHelper.buildRouteUri(this)
+fun Route.buildUriPath(): String = RoutesHelper.buildRouteUriPath(this)
+fun Route.getEndpointMethodAnnotations(): Array<Annotation>? = RoutesHelper.getEndpointMethodAnnotations(this)
