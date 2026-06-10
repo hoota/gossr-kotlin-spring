@@ -107,8 +107,6 @@ class RoutesHelper(
     }
 
     private fun registerInterceptor() {
-        val handlerMapping = applicationContext.getBean(RequestMappingHandlerMapping::class.java)
-
         // adaptedInterceptors — protected field
         val field = AbstractHandlerMapping::class.java.getDeclaredField("adaptedInterceptors")
 
